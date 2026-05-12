@@ -1,0 +1,46 @@
+{
+  "name": "mail-manager",
+  "version": "0.1.0",
+  "description": "多邮箱聚合管理工具(QQ / 163 / Microsoft)",
+  "main": "out/main/index.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "imapflow": "^1.0.171",
+    "mailparser": "^3.7.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "element-plus": "^2.8.8",
+    "@element-plus/icons-vue": "^2.3.1",
+    "vite": "^5.4.11",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "build": {
+    "appId": "com.local.mailmanager",
+    "productName": "MailManager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

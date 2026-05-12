@@ -1,0 +1,20 @@
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #1f2328;
+  background: #f6f7f9;
+}
+.mail-html-body {
+  word-break: break-word;
+}
+.mail-html-body img {
+  max-width: 100%;
+}
+.tag-type-qq { --el-tag-bg-color: #eaf4ff; color: #0b6cff; }
+.tag-type-163 { --el-tag-bg-color: #ffeedd; color: #d2691e; }
+.tag-type-ms { --el-tag-bg-color: #e8f5e9; color: #2e7d32; }
