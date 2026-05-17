@@ -18,6 +18,9 @@ function rowToAccount(row, { withSecrets = false } = {}) {
     oauth_tenant: row.oauth_tenant,
     group_name: row.group_name || '',
     tags: parseTags(row.tags),
+    at_token: row.at_token || '',
+    rt_token: row.rt_token || '',
+    payurl: row.payurl || '',
     status: row.status,
     last_error: row.last_error,
     last_sync_at: row.last_sync_at,
@@ -170,6 +173,11 @@ export function upsertAccount(payload) {
     const groupName = payload.group_name !== undefined ? (String(payload.group_name || '').trim() || null) : existing.group_name
     const tagsJson = payload.tags !== undefined ? normalizeTags(payload.tags) : existing.tags
 
+    // 新字段:at_token / rt_token / payurl
+    const atToken = payload.at_token !== undefined ? (String(payload.at_token || '').trim() || null) : existing.at_token
+    const rtToken = payload.rt_token !== undefined ? (String(payload.rt_token || '').trim() || null) : existing.rt_token
+    const payurl = payload.payurl !== undefined ? (String(payload.payurl || '').trim() || null) : existing.payurl
+
     const password_enc = payload.password != null
       ? (payload.password === '' ? null : encryptString(payload.password))
       : existing.password_enc
@@ -186,10 +194,13 @@ export function upsertAccount(payload) {
         password_enc = ?, cookie_enc = ?, login_password_enc = ?,
         oauth_client_id = ?, oauth_tenant = ?,
         group_name = ?, tags = ?,
+        at_token = ?, rt_token = ?, payurl = ?,
         updated_at = ?
       WHERE id = ?
     `).run(name, email, type, authMode, password_enc, cookie_enc, login_password_enc,
-           oauthClientId, oauthTenant, groupName, tagsJson, ts, payload.id)
+           oauthClientId, oauthTenant, groupName, tagsJson,
+           atToken, rtToken, payurl,
+           ts, payload.id)
     return payload.id
   }
 
@@ -218,6 +229,10 @@ export function upsertAccount(payload) {
   const groupName = payload.group_name != null ? String(payload.group_name).trim() || null : null
   const tagsJson = normalizeTags(payload.tags)
 
+  const atToken = payload.at_token != null ? String(payload.at_token).trim() || null : null
+  const rtToken = payload.rt_token != null ? String(payload.rt_token).trim() || null : null
+  const payurl = payload.payurl != null ? String(payload.payurl).trim() || null : null
+
   const password_enc = payload.password ? encryptString(payload.password) : null
   const cookie_enc = payload.cookie ? encryptString(payload.cookie) : null
   const login_password_enc = payload.login_password ? encryptString(payload.login_password) : null
@@ -227,11 +242,13 @@ export function upsertAccount(payload) {
       (name, email, type, auth_mode, password_enc, cookie_enc, login_password_enc,
        oauth_client_id, oauth_tenant,
        group_name, tags,
+       at_token, rt_token, payurl,
        status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?, ?)
   `).run(name, email, type, authMode, password_enc, cookie_enc, login_password_enc,
          oauthClientId, oauthTenant,
          groupName, tagsJson,
+         atToken, rtToken, payurl,
          ts, ts)
   return info.lastInsertRowid
 }

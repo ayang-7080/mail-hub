@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted, reactive, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '../api.js'
 
 const router = useRouter()
+const route = useRoute()
 const accounts = ref([])
 const groups = ref([])
 const tagsAll = ref([])
@@ -16,6 +17,19 @@ const total = ref(0)
 const totalCount = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(50)
+const hideEmail = ref(false)
+
+function maskEmail(email) {
+  if (!hideEmail.value) return email
+  if (!email) return email
+  const at = email.indexOf('@')
+  if (at < 0) return email
+  const name = email.slice(0, at)
+  const domain = email.slice(at)
+  if (name.length <= 2) return name[0] + '*' + domain
+  if (name.length <= 4) return name[0] + '***' + name[name.length - 1] + domain
+  return name.slice(0, 2) + '***' + name.slice(-2) + domain
+}
 
 // ---------- 批量操作 ----------
 const selectedRows = ref([])
@@ -304,7 +318,11 @@ function openInbox(row) {
 }
 
 function openWorkspace(row) {
-  router.push({ name: 'workspace', params: { id: row.id } })
+  router.push({
+    name: 'workspace',
+    params: { id: row.id },
+    query: { from_group: filter.group || '' }
+  })
 }
 
 function statusTag(s) {
@@ -408,6 +426,10 @@ function getServiceNames(accountId) {
 
 onMounted(async () => {
   meta.value = await api.getMeta()
+  // 从 query 恢复分组(从工作台返回时)
+  if (route.query.group != null) {
+    filter.group = String(route.query.group)
+  }
   await loadAll()
   if (!meta.value.encryption) {
     ElMessage.warning('当前系统未启用加密存储,密码将以明文保存,请谨慎使用')
@@ -500,6 +522,11 @@ onMounted(async () => {
                 <el-option label="同步时间" value="sync_desc" />
               </el-select>
               <el-button link @click="resetFilter">重置</el-button>
+              <el-tooltip :content="hideEmail ? '显示完整邮箱' : '隐藏邮箱中间部分'" placement="top">
+                <el-button link @click="hideEmail = !hideEmail">
+                  <el-icon style="font-size: 18px"><View v-if="!hideEmail" /><Hide v-else /></el-icon>
+                </el-button>
+              </el-tooltip>
             </div>
             <el-space>
               <el-button @click="loadAll">刷新</el-button>
@@ -528,8 +555,8 @@ onMounted(async () => {
           </el-table-column>
           <el-table-column prop="email" label="邮箱" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
-              <span style="cursor: pointer" @click.stop="copyText(row.email)" title="点击复制">
-                {{ row.email }}
+              <span style="cursor: pointer" @click.stop="copyText(row.email)" title="点击复制完整邮箱">
+                {{ maskEmail(row.email) }}
                 <el-icon style="margin-left: 4px; color: #909399; vertical-align: -2px"><CopyDocument /></el-icon>
               </span>
             </template>

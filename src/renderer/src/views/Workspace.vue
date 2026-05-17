@@ -12,12 +12,23 @@ const account = ref(null)
 const mails = ref([])
 const allServices = ref([])
 const checkedServices = ref([])
+const groupsList = ref([])
 const loading = ref(false)
 const syncing = ref(false)
 const autoSync = ref(true)
 const syncInterval = ref(30) // 秒
 const lastSyncTime = ref(null)
 const newMailCount = ref(0)
+
+// 可编辑字段
+const editingFields = ref({
+  group_name: '',
+  name: '',
+  at_token: '',
+  rt_token: '',
+  payurl: ''
+})
+const fieldSaving = ref(false)
 
 // 邮件详情
 const detailVisible = ref(false)
@@ -32,6 +43,36 @@ async function loadAccount() {
   const res = await api.accounts.list({})
   const list = res.items || res
   account.value = list.find((a) => a.id === accountId.value) || null
+  if (account.value) {
+    editingFields.value = {
+      group_name: account.value.group_name || '',
+      name: account.value.name || '',
+      at_token: account.value.at_token || '',
+      rt_token: account.value.rt_token || '',
+      payurl: account.value.payurl || ''
+    }
+  }
+}
+
+async function loadGroups() {
+  groupsList.value = await api.accounts.groups()
+}
+
+async function saveFields() {
+  fieldSaving.value = true
+  try {
+    await api.accounts.upsert({
+      id: accountId.value,
+      ...JSON.parse(JSON.stringify(editingFields.value))
+    })
+    ElMessage.success('已保存')
+    await loadAccount()
+    await loadGroups()
+  } catch (e) {
+    ElMessage.error(e.message || '保存失败')
+  } finally {
+    fieldSaving.value = false
+  }
 }
 
 async function loadServices() {
@@ -132,7 +173,11 @@ function copyText(text) {
 }
 
 function goBack() {
-  router.push({ name: 'accounts' })
+  const fromGroup = route.query.from_group
+  router.push({
+    name: 'accounts',
+    query: fromGroup != null ? { group: fromGroup } : {}
+  })
 }
 
 onMounted(async () => {
@@ -147,7 +192,7 @@ onMounted(async () => {
     const interval = await api.settings.getSyncInterval()
     if (interval >= 3) syncInterval.value = interval
   } catch {}
-  await Promise.all([loadServices(), loadMails()])
+  await Promise.all([loadServices(), loadMails(), loadGroups()])
   await syncNow(true)
   startAutoSync()
 })
@@ -224,12 +269,47 @@ onUnmounted(() => {
       </el-main>
     </el-container>
 
-    <!-- 右侧:已注册服务快速勾选 -->
-    <el-aside width="240px" style="background: #fff; border-left: 1px solid #e5e7eb">
-      <div style="padding: 14px 16px; border-bottom: 1px solid #eee; font-weight: 600; font-size: 14px">
-        已注册服务
-      </div>
-      <el-scrollbar style="height: calc(100vh - 100px)">
+    <!-- 右侧:邮箱信息编辑 + 已注册服务快速勾选 -->
+    <el-aside width="320px" style="background: #fff; border-left: 1px solid #e5e7eb">
+      <el-scrollbar style="height: 100vh">
+        <!-- 邮箱信息编辑 -->
+        <div style="padding: 14px 16px; border-bottom: 1px solid #eee; font-weight: 600; font-size: 14px">
+          邮箱信息
+        </div>
+        <div style="padding: 12px 16px; border-bottom: 1px solid #eee">
+          <el-form label-position="top" size="small">
+            <el-form-item label="备注名">
+              <el-input v-model="editingFields.name" placeholder="选填" />
+            </el-form-item>
+            <el-form-item label="分组">
+              <el-select
+                v-model="editingFields.group_name"
+                filterable allow-create clearable
+                placeholder="选择或新建"
+                style="width: 100%"
+              >
+                <el-option v-for="g in groupsList" :key="g.name" :label="g.name" :value="g.name" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="at_token">
+              <el-input v-model="editingFields.at_token" type="textarea" :rows="2" placeholder="JSON 格式" />
+            </el-form-item>
+            <el-form-item label="rt_token">
+              <el-input v-model="editingFields.rt_token" type="textarea" :rows="2" placeholder="JSON 格式" />
+            </el-form-item>
+            <el-form-item label="payurl">
+              <el-input v-model="editingFields.payurl" type="textarea" :rows="2" placeholder="支付链接(长文本)" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="fieldSaving" @click="saveFields" style="width: 100%">保存</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <!-- 已注册服务 -->
+        <div style="padding: 14px 16px; border-bottom: 1px solid #eee; font-weight: 600; font-size: 14px">
+          已注册服务
+        </div>
         <div style="padding: 12px 16px">
           <div v-for="s in allServices" :key="s.id" style="margin-bottom: 8px">
             <el-checkbox
@@ -239,7 +319,7 @@ onUnmounted(() => {
             />
           </div>
           <div v-if="!allServices.length" style="color: #909399; font-size: 12px">
-            暂无服务,请先在「已注册服务」页面添加
+            暂无服务,请先在「注册服务」页面添加
           </div>
         </div>
       </el-scrollbar>

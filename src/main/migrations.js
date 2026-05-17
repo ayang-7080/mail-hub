@@ -139,6 +139,16 @@ export const migrations = [
         );
       `)
     }
+  },
+  {
+    version: 8,
+    description: '账号新增 at_token / rt_token / payurl 字段',
+    up(db) {
+      const cols = db.prepare(`PRAGMA table_info(accounts)`).all().map((c) => c.name)
+      if (!cols.includes('at_token')) db.exec(`ALTER TABLE accounts ADD COLUMN at_token TEXT`)
+      if (!cols.includes('rt_token')) db.exec(`ALTER TABLE accounts ADD COLUMN rt_token TEXT`)
+      if (!cols.includes('payurl')) db.exec(`ALTER TABLE accounts ADD COLUMN payurl TEXT`)
+    }
   }
 ]
 
